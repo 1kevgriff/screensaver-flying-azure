@@ -80,7 +80,7 @@ if (-not $NoBuild) {
     $sc = if ($SelfContained) { 'true' } else { 'false' }
     Write-Host "Publishing single-file (Release, $rid, self-contained=$sc)..." -ForegroundColor Cyan
     dotnet publish (Join-Path $root 'src\FlyingAzure\FlyingAzure.csproj') `
-        -c Release -r $rid --self-contained $sc `
+        -c Release -r $rid -p:SelfContained=$sc `
         -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 }
