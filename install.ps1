@@ -1,0 +1,119 @@
+<#
+.SYNOPSIS
+    Builds and installs the Flying Azure screensaver, and (by default) sets it as
+    the active Windows screensaver.
+
+.DESCRIPTION
+    Two install modes:
+
+    * User scope (default) - copies FlyingAzure.scr to
+      %LOCALAPPDATA%\FlyingAzure and points the current user's screensaver at it.
+      No administrator rights required. The screensaver will NOT appear in the
+      Windows "Screen Saver Settings" drop-down list (that list only scans the
+      system folders), but it is fully active and its Settings/Preview buttons
+      work via the registered path.
+
+    * System scope (-System) - copies FlyingAzure.scr to %WINDIR%\System32 so it
+      appears in the Screen Saver Settings drop-down. Requires an elevated
+      (Administrator) PowerShell session.
+
+.PARAMETER System
+    Install into %WINDIR%\System32 (requires elevation). Makes the saver appear
+    in the Windows screensaver drop-down list.
+
+.PARAMETER TimeoutMinutes
+    Idle minutes before the screensaver starts when activated. Default 10.
+
+.PARAMETER NoActivate
+    Install the .scr but do not change the current screensaver selection.
+
+.PARAMETER NoBuild
+    Skip 'dotnet build -c Release'; use the existing build output.
+
+.EXAMPLE
+    ./install.ps1
+    Builds, installs to LOCALAPPDATA, activates with a 10-minute timeout.
+
+.EXAMPLE
+    ./install.ps1 -System
+    (Run as Administrator) Builds, installs to System32, activates.
+#>
+[CmdletBinding()]
+param(
+    [switch]$System,
+    [int]$TimeoutMinutes = 10,
+    [switch]$NoActivate,
+    [switch]$NoBuild
+)
+
+$ErrorActionPreference = 'Stop'
+$root = $PSScriptRoot
+$buildScr = Join-Path $root 'src\FlyingAzure\bin\Release\net10.0-windows\FlyingAzure.scr'
+
+function Test-Admin {
+    $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+    return ([Security.Principal.WindowsPrincipal]$id).IsInRole(
+        [Security.Principal.WindowsBuiltinRole]::Administrator)
+}
+
+# 1. Build (unless skipped) ---------------------------------------------------
+if (-not $NoBuild) {
+    Write-Host 'Building (Release)...' -ForegroundColor Cyan
+    dotnet build (Join-Path $root 'src\FlyingAzure\FlyingAzure.csproj') -c Release --nologo
+    if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+}
+
+if (-not (Test-Path $buildScr)) {
+    throw "Screensaver not found at '$buildScr'. Run without -NoBuild, or build the solution first."
+}
+
+# 2. Resolve destination ------------------------------------------------------
+if ($System) {
+    if (-not (Test-Admin)) {
+        throw '-System requires an elevated PowerShell session. Re-run as Administrator, or omit -System for a per-user install.'
+    }
+    $destDir = Join-Path $env:WINDIR 'System32'
+} else {
+    $destDir = Join-Path $env:LOCALAPPDATA 'FlyingAzure'
+}
+
+$dest = Join-Path $destDir 'FlyingAzure.scr'
+
+# 3. Copy ---------------------------------------------------------------------
+New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+Copy-Item -Path $buildScr -Destination $dest -Force
+Write-Host "Installed: $dest" -ForegroundColor Green
+
+# 4. Activate (unless skipped) ------------------------------------------------
+if (-not $NoActivate) {
+    $timeoutSeconds = [Math]::Max(60, $TimeoutMinutes * 60)
+    $desktop = 'HKCU:\Control Panel\Desktop'
+    Set-ItemProperty -Path $desktop -Name 'SCRNSAVE.EXE'      -Value $dest
+    Set-ItemProperty -Path $desktop -Name 'ScreenSaveActive'  -Value '1'
+    Set-ItemProperty -Path $desktop -Name 'ScreenSaveTimeOut' -Value "$timeoutSeconds"
+
+    # Broadcast the change so it takes effect without a sign-out.
+    if (-not ('FlyingAzureSpi' -as [type])) {
+        Add-Type -Namespace '' -Name 'FlyingAzureSpi' -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, System.IntPtr pvParam, uint fWinIni);
+'@
+    }
+    $SPI_SETSCREENSAVEACTIVE  = 0x0011
+    $SPI_SETSCREENSAVETIMEOUT = 0x000F
+    $SPIF_UPDATE_AND_SEND     = 0x0003   # UPDATEINIFILE | SENDCHANGE
+    [FlyingAzureSpi]::SystemParametersInfo($SPI_SETSCREENSAVETIMEOUT, [uint32]$timeoutSeconds, [IntPtr]::Zero, $SPIF_UPDATE_AND_SEND) | Out-Null
+    [FlyingAzureSpi]::SystemParametersInfo($SPI_SETSCREENSAVEACTIVE, 1, [IntPtr]::Zero, $SPIF_UPDATE_AND_SEND) | Out-Null
+
+    Write-Host "Activated as the current screensaver ($TimeoutMinutes-minute idle timeout)." -ForegroundColor Green
+}
+
+Write-Host ''
+Write-Host 'Done.' -ForegroundColor Green
+Write-Host "  Preview now:   `"$dest`" /s"
+Write-Host "  Configure:     `"$dest`" /c"
+if ($System) {
+    Write-Host '  It also appears in: Settings > Personalization > Lock screen > Screen saver.'
+}
+$uninstallHint = if ($System) { './uninstall.ps1 -System  (run elevated)' } else { './uninstall.ps1' }
+Write-Host "  Uninstall with: $uninstallHint"
