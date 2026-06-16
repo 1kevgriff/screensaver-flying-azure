@@ -11,7 +11,7 @@ at a diagonal, leaving fading motion-blur trails. Inspired by After Dark's
 
 ## Build
 
-```
+```bash
 dotnet build -c Release
 ```
 
@@ -20,14 +20,14 @@ This produces `src/FlyingAzure/bin/Release/net10.0-windows/FlyingAzure.scr`
 
 ## Test
 
-```
+```bash
 dotnet test
 ```
 
 ## Install
 
 1. Build in Release.
-2. Right-click `FlyingAzure.scr` → **Install**, **or** copy it to `C:\Windows\System32\`.
+2. Right-click `FlyingAzure.scr` → **Install**, **or** copy it to `C:\Windows\System32\` (64-bit Windows; the right-click → Install option works regardless).
 3. Open **Settings → Personalization → Lock screen → Screen saver**, pick
    **FlyingAzure**, and use **Settings…** to configure.
 

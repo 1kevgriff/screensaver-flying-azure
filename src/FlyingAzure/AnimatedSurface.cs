@@ -42,6 +42,12 @@ public sealed class AnimatedSurface : Control
         _timer.Start();
     }
 
+    protected override void OnHandleDestroyed(EventArgs e)
+    {
+        _timer.Stop();
+        base.OnHandleDestroyed(e);
+    }
+
     protected override void OnResize(EventArgs e)
     {
         base.OnResize(e);
