@@ -26,7 +26,7 @@ public sealed class ConfigForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(440, 360);
+        ClientSize = new Size(440, 520);
 
         _count.Value = settings.LogoCount;
         _speed.Value = settings.Speed;
@@ -67,7 +67,10 @@ public sealed class ConfigForm : Form
         AcceptButton = ok;
         CancelButton = cancel;
 
+        var about = BuildAboutBox();
+
         Controls.Add(_preview);
+        Controls.Add(about);
         Controls.Add(buttons);
         Controls.Add(layout);
 
@@ -102,6 +105,50 @@ public sealed class ConfigForm : Form
     {
         _preview.BackColor = _background;
         _preview.ApplySettings(CurrentSettings());
+    }
+
+    private static GroupBox BuildAboutBox()
+    {
+        var flow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            Padding = new Padding(8, 2, 8, 8),
+        };
+        flow.Controls.Add(new Label
+        {
+            Text = "Made with 💖 by Kevin Griffin",
+            AutoSize = true,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            Margin = new Padding(3, 2, 3, 6),
+        });
+        flow.Controls.Add(NewLink("consultwithgriff.com", "https://consultwithgriff.com"));
+        flow.Controls.Add(NewLink("x.com/1kevgriff", "https://x.com/1kevgriff"));
+        flow.Controls.Add(NewLink("bsky.app/profile/consultwithgriff.com", "https://bsky.app/profile/consultwithgriff.com"));
+        flow.Controls.Add(NewLink("linkedin.com/in/1kevgriff", "https://www.linkedin.com/in/1kevgriff"));
+
+        var box = new GroupBox { Text = "About", Dock = DockStyle.Bottom, Height = 150 };
+        box.Controls.Add(flow);
+        return box;
+    }
+
+    private static LinkLabel NewLink(string text, string url)
+    {
+        var link = new LinkLabel { Text = text, AutoSize = true, Margin = new Padding(3, 2, 3, 2) };
+        link.LinkClicked += (_, _) =>
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Couldn't open the link:\n{url}\n\n{ex.Message}", "Flying Azure",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        };
+        return link;
     }
 
     private static TrackBar NewTrack(int min, int max) => new()
