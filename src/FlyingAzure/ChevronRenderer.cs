@@ -27,10 +27,16 @@ public sealed partial class ChevronRenderer : IDisposable
     public void Draw(Graphics g, Sprite sprite)
     {
         var state = g.Save();
-        g.TranslateTransform(sprite.Position.X, sprite.Position.Y);
-        g.ScaleTransform(sprite.Size, sprite.Size);
-        g.FillPath(_brush, _path);
-        g.Restore(state);
+        try
+        {
+            g.TranslateTransform(sprite.Position.X, sprite.Position.Y);
+            g.ScaleTransform(sprite.Size, sprite.Size);
+            g.FillPath(_brush, _path);
+        }
+        finally
+        {
+            g.Restore(state);
+        }
     }
 
     public static ChevronRenderer FromEmbeddedAsset()
