@@ -1,6 +1,5 @@
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using FlyingAzure.Core;
 
 namespace FlyingAzure;
@@ -11,11 +10,13 @@ namespace FlyingAzure;
 /// and <see cref="RenderFrame"/> draws the slice of that field falling within this
 /// monitor — so a logo flows continuously from one monitor onto the next.
 /// </summary>
-public sealed class ScreensaverForm : Form
+public sealed partial class ScreensaverForm : Form
 {
     private const int MouseDeadZonePixels = 8;
+    private const uint SwpShowWindow = 0x0040;
 
     private readonly SpriteCache _cache; // shared across windows (read-only blits on the UI thread)
+    private readonly Rectangle _screenBounds; // physical monitor rect (from Screen.Bounds), DPI-independent
     private readonly float _offsetX;
     private readonly float _offsetY;
     private readonly float _dirX;
@@ -35,12 +36,16 @@ public sealed class ScreensaverForm : Form
         float dirX, float dirY, SpriteCache cache)
     {
         _cache = cache;
+        _screenBounds = bounds;
         _offsetX = offsetX;
         _offsetY = offsetY;
         _dirX = dirX;
         _dirY = dirY;
         _background = settings.BackgroundColor();
 
+        // Don't let WinForms rescale this window by DPI — we place it in physical pixels
+        // via SetWindowPos so it covers a scaled monitor exactly (no exposed edges/taskbar).
+        AutoScaleMode = AutoScaleMode.None;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         Bounds = bounds;
@@ -56,7 +61,10 @@ public sealed class ScreensaverForm : Form
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
-        var size = new Size(Math.Max(1, ClientSize.Width), Math.Max(1, ClientSize.Height));
+        // Place/size the window in physical pixels to cover the monitor exactly.
+        SetWindowPos(Handle, HwndTopmost, _screenBounds.X, _screenBounds.Y, _screenBounds.Width, _screenBounds.Height, SwpShowWindow);
+
+        var size = new Size(Math.Max(1, _screenBounds.Width), Math.Max(1, _screenBounds.Height));
         _bufferContext.MaximumBuffer = new Size(size.Width + 1, size.Height + 1);
         _present = CreateGraphics();
         _backBuffer = _bufferContext.Allocate(_present, new Rectangle(Point.Empty, size));
@@ -75,7 +83,7 @@ public sealed class ScreensaverForm : Form
             return;
         }
 
-        TrailRenderer.Render(_backBuffer.Graphics, ClientSize.Width, ClientSize.Height, _background,
+        TrailRenderer.Render(_backBuffer.Graphics, _screenBounds.Width, _screenBounds.Height, _background,
             sprites, _offsetX, _offsetY, _dirX, _dirY, _cache);
 
         if (_present is not null)
@@ -97,11 +105,21 @@ public sealed class ScreensaverForm : Form
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        // Re-assert top-most (toggle forces re-insertion at the top of the top-most band,
+        // above the taskbar) and force the window over the full monitor rect.
+        TopMost = false;
         TopMost = true;
         BringToFront();
         Activate();
         Focus();
+        SetWindowPos(Handle, HwndTopmost, _screenBounds.X, _screenBounds.Y, _screenBounds.Width, _screenBounds.Height, SwpShowWindow);
     }
+
+    private static readonly nint HwndTopmost = -1;
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
 
     protected override void OnKeyDown(KeyEventArgs e) => RequestExit();
 

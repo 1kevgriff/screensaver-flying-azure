@@ -89,7 +89,14 @@ public sealed class ConfigForm : Form
             }
         };
 
-        ok.Click += (_, _) => _store.Save(CurrentSettings());
+        // Shown via Application.Run (not ShowDialog), so DialogResult does not auto-close —
+        // close explicitly. OK persists first.
+        ok.Click += (_, _) =>
+        {
+            _store.Save(CurrentSettings());
+            Close();
+        };
+        cancel.Click += (_, _) => Close();
     }
 
     private Settings CurrentSettings() => new()
