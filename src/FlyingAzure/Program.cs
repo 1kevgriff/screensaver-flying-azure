@@ -17,7 +17,7 @@ internal static class Program
         switch (parsed.Mode)
         {
             case ScreensaverMode.Preview:
-                // Implemented in Task 9.
+                PreviewHost.Run(settings, parsed.WindowHandle);
                 return 0;
             case ScreensaverMode.Configure:
                 // Implemented in Task 10.
