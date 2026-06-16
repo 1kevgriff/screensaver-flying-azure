@@ -9,14 +9,21 @@ at a diagonal, leaving fading motion-blur trails. Inspired by After Dark's
 - Windows 10/11
 - .NET 10 SDK (to build)
 
-## Build
+## Build & package
+
+A `.scr` must be a standalone, runnable apphost — not the managed `.dll` — so the
+screensaver is produced by a **single-file publish**, not by plain `dotnet build`:
 
 ```bash
-dotnet build -c Release
+dotnet build -c Release   # compile (and `dotnet test` runs the unit tests)
+dotnet publish src/FlyingAzure -c Release -r win-x64 -p:SelfContained=false -p:PublishSingleFile=true
 ```
 
-This produces `src/FlyingAzure/bin/Release/net10.0-windows/FlyingAzure.scr`
-(a copy of the built executable).
+The single-file screensaver lands at
+`src/FlyingAzure/bin/Release/net10.0-windows/win-x64/publish/FlyingAzure.scr`.
+It is framework-dependent (needs the **.NET 10 Desktop Runtime**); add
+`-p:SelfContained=true` for a fully standalone (larger) build. `install.ps1` runs
+this publish for you, so you normally don't invoke it by hand.
 
 ## Test
 
@@ -48,7 +55,7 @@ switches:
 
 ### Manual
 
-1. Build in Release.
+1. Publish the single-file `.scr` (see **Build & package**).
 2. Right-click `FlyingAzure.scr` → **Install**, **or** copy it to `C:\Windows\System32\` (64-bit Windows; the right-click → Install option works regardless).
 3. Open **Settings → Personalization → Lock screen → Screen saver**, pick
    **FlyingAzure**, and use **Settings…** to configure.

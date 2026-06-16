@@ -43,12 +43,17 @@ param(
     [switch]$System,
     [int]$TimeoutMinutes = 10,
     [switch]$NoActivate,
-    [switch]$NoBuild
+    [switch]$NoBuild,
+    [switch]$SelfContained
 )
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-$buildScr = Join-Path $root 'src\FlyingAzure\bin\Release\net10.0-windows\FlyingAzure.scr'
+$rid = 'win-x64'
+# The .scr is the single-file apphost from 'dotnet publish' (see CopyPublishToScr
+# in FlyingAzure.csproj) — a standalone runnable file, unlike the managed .dll.
+$publishDir = Join-Path $root "src\FlyingAzure\bin\Release\net10.0-windows\$rid\publish"
+$buildScr = Join-Path $publishDir 'FlyingAzure.scr'
 
 function Test-Admin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -62,22 +67,26 @@ if ($System -and -not (Test-Admin)) {
     Write-Host 'Approve the UAC prompt when it appears...' -ForegroundColor Yellow
     $hostExe = (Get-Process -Id $PID).Path
     $argv = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-System', '-TimeoutMinutes', $TimeoutMinutes)
-    if ($NoActivate) { $argv += '-NoActivate' }
-    if ($NoBuild)    { $argv += '-NoBuild' }
+    if ($NoActivate)    { $argv += '-NoActivate' }
+    if ($NoBuild)       { $argv += '-NoBuild' }
+    if ($SelfContained) { $argv += '-SelfContained' }
     Start-Process -FilePath $hostExe -Verb RunAs -ArgumentList $argv
     Write-Host 'Elevated installer launched. This window can be closed.' -ForegroundColor Cyan
     return
 }
 
-# 1. Build (unless skipped) ---------------------------------------------------
+# 1. Publish single-file .scr (unless skipped) -------------------------------
 if (-not $NoBuild) {
-    Write-Host 'Building (Release)...' -ForegroundColor Cyan
-    dotnet build (Join-Path $root 'src\FlyingAzure\FlyingAzure.csproj') -c Release --nologo
-    if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+    $sc = if ($SelfContained) { 'true' } else { 'false' }
+    Write-Host "Publishing single-file (Release, $rid, self-contained=$sc)..." -ForegroundColor Cyan
+    dotnet publish (Join-Path $root 'src\FlyingAzure\FlyingAzure.csproj') `
+        -c Release -r $rid --self-contained $sc `
+        -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --nologo
+    if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 }
 
 if (-not (Test-Path $buildScr)) {
-    throw "Screensaver not found at '$buildScr'. Run without -NoBuild, or build the solution first."
+    throw "Screensaver not found at '$buildScr'. Run without -NoBuild to publish it first."
 }
 
 # 2. Resolve destination ------------------------------------------------------

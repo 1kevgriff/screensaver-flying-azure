@@ -1,4 +1,5 @@
 using FlyingAzure.Core;
+using Microsoft.Extensions.Logging;
 
 namespace FlyingAzure;
 
@@ -7,12 +8,22 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        using var loggerFactory = LoggerFactory.Create(builder =>
+            builder.AddProvider(new FileLoggerProvider(LogFilePath())));
+        ILogger logger = loggerFactory.CreateLogger("FlyingAzure");
+
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            logger.LogError(e.ExceptionObject as Exception, "Unhandled exception (terminating={Terminating})", e.IsTerminating);
+        Application.ThreadException += (_, e) =>
+            logger.LogError(e.Exception, "Unhandled UI thread exception");
+
         Application.EnableVisualStyles();
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.SetCompatibleTextRenderingDefault(false);
 
         var parsed = CommandLineParser.Parse(args);
         var settings = new SettingsStore(new RegistrySettingsBackend()).Load();
+        logger.LogInformation("Starting in {Mode} mode (handle={Handle})", parsed.Mode, parsed.WindowHandle);
 
         switch (parsed.Mode)
         {
@@ -57,6 +68,13 @@ internal static class Program
         }
 
         Application.Run();
+    }
+
+    private static string LogFilePath()
+    {
+        string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FlyingAzure");
+        Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "flyingazure.log");
     }
 
     private static void CloseAll(List<ScreensaverForm> forms)
