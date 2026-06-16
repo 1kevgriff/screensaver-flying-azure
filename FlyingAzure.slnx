@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FlyingAzure.Core/FlyingAzure.Core.csproj" />
+    <Project Path="src/FlyingAzure/FlyingAzure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FlyingAzure.Core.Tests/FlyingAzure.Core.Tests.csproj" />
+  </Folder>
+</Solution>
