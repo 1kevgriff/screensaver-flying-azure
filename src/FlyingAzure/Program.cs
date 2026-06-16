@@ -51,6 +51,11 @@ internal static class Program
             form.Show();
         }
 
+        if (forms.Count > 0)
+        {
+            forms[0].Activate();
+        }
+
         Application.Run();
     }
 

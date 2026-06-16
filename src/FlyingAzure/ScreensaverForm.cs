@@ -32,6 +32,15 @@ public sealed class ScreensaverForm : Form
         Cursor.Hide();
     }
 
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        TopMost = true;
+        BringToFront();
+        Activate();
+        Focus();
+    }
+
     protected override void OnKeyDown(KeyEventArgs e) => RequestExit();
 
     protected override void OnMouseDown(MouseEventArgs e) => RequestExit();
