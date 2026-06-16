@@ -1,9 +1,10 @@
+using System.Runtime.InteropServices;
 using FlyingAzure.Core;
 using Microsoft.Extensions.Logging;
 
 namespace FlyingAzure;
 
-internal static class Program
+internal static partial class Program
 {
     [STAThread]
     private static int Main(string[] args)
@@ -40,22 +41,85 @@ internal static class Program
             }
             case ScreensaverMode.Run:
             default:
-                RunScreensaver(settings);
+                RunScreensaver(settings, logger);
                 return 0;
         }
     }
 
-    private static void RunScreensaver(Settings settings)
-    {
-        using var renderer = ChevronRenderer.FromEmbeddedAsset();
-        var forms = new List<ScreensaverForm>();
+    private const float TravelAngleDegrees = 150f; // down-left
 
+    private static void RunScreensaver(Settings settings, ILogger logger)
+    {
+        // One simulation across the whole virtual desktop, so logos flow between monitors.
+        var virtualScreen = SystemInformation.VirtualScreen;
+        float dirX = MathF.Cos(TravelAngleDegrees * MathF.PI / 180f);
+        float dirY = MathF.Sin(TravelAngleDegrees * MathF.PI / 180f);
+        float baseSize = settings.BaseSizePixels();
+        var simulation = new Simulation(virtualScreen.Width, virtualScreen.Height, settings.LogoCount,
+            TravelAngleDegrees, settings.SpeedPixelsPerSecond(), baseSize * 0.7f, baseSize * 1.3f, new Random());
+
+        using var renderer = ChevronRenderer.FromEmbeddedAsset();
+        using var cache = renderer.CreateSpriteCache(baseSize * 0.7f, baseSize * 1.3f, settings.GhostCount());
+
+        var forms = new List<ScreensaverForm>();
         foreach (var screen in Screen.AllScreens)
         {
-            var form = new ScreensaverForm(settings, screen.Bounds, renderer);
+            // Each window renders the field offset by its position within the virtual desktop.
+            float offsetX = screen.Bounds.X - virtualScreen.X;
+            float offsetY = screen.Bounds.Y - virtualScreen.Y;
+            var form = new ScreensaverForm(settings, screen.Bounds, offsetX, offsetY, dirX, dirY, cache);
             form.ExitRequested += (_, _) => CloseAll(forms);
             forms.Add(form);
         }
+
+        // Render via an Application.Idle game loop instead of a WinForms Timer: the timer
+        // is capped at the ~15.6ms system tick (~60fps ceiling that we never reach after
+        // work), whereas the idle loop renders back-to-back, throttled to a 60fps target.
+        const double targetFrameMs = 1000.0 / 60.0;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var work = new System.Diagnostics.Stopwatch();
+        long lastMs = 0;
+        int frames = 0;
+        bool fpsLogged = false;
+        double nextFrameMs = 0;
+
+        Application.Idle += (_, _) =>
+        {
+            while (IsApplicationIdle())
+            {
+                double tMs = clock.Elapsed.TotalMilliseconds;
+                if (tMs < nextFrameMs)
+                {
+                    System.Threading.Thread.Sleep(1); // throttle to the target frame rate
+                    continue;
+                }
+                nextFrameMs = tMs + targetFrameMs;
+
+                long now = clock.ElapsedMilliseconds;
+                double dt = Math.Min((now - lastMs) / 1000.0, 0.1);
+                lastMs = now;
+
+                work.Start();
+                simulation.Step(dt);
+                foreach (var form in forms)
+                {
+                    if (!form.IsDisposed)
+                    {
+                        form.RenderFrame(simulation.Sprites);
+                    }
+                }
+                work.Stop();
+
+                // Log a single steady-state performance sample ~3s in, then stop (keeps the log small).
+                frames++;
+                if (!fpsLogged && now >= 3000)
+                {
+                    logger.LogInformation("Render {Fps:F0} fps, frame work {WorkMs:F1}ms across {Monitors} monitor(s)",
+                        frames * 1000.0 / now, work.Elapsed.TotalMilliseconds / frames, forms.Count);
+                    fpsLogged = true;
+                }
+            }
+        };
 
         foreach (var form in forms)
         {
@@ -69,6 +133,24 @@ internal static class Program
 
         Application.Run();
     }
+
+    private static bool IsApplicationIdle() => !PeekMessage(out _, 0, 0, 0, 0);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeMessage
+    {
+        public nint Handle;
+        public uint Message;
+        public nint WParam;
+        public nint LParam;
+        public uint Time;
+        public int PointX;
+        public int PointY;
+    }
+
+    [LibraryImport("user32.dll", EntryPoint = "PeekMessageW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool PeekMessage(out NativeMessage message, nint hWnd, uint filterMin, uint filterMax, uint remove);
 
     private static string LogFilePath()
     {

@@ -9,6 +9,8 @@ namespace FlyingAzure;
 public sealed class AnimatedSurface : Control
 {
     private const float TravelAngleDegrees = 150f; // down-left
+    private static readonly float DirX = MathF.Cos(TravelAngleDegrees * MathF.PI / 180f);
+    private static readonly float DirY = MathF.Sin(TravelAngleDegrees * MathF.PI / 180f);
 
     private readonly ChevronRenderer _renderer;
     private readonly System.Windows.Forms.Timer _timer;
@@ -17,6 +19,7 @@ public sealed class AnimatedSurface : Control
 
     private Settings _settings;
     private Simulation? _sim;
+    private SpriteCache? _cache;
     private Bitmap? _buffer;
     private long _lastMs;
 
@@ -62,7 +65,7 @@ public sealed class AnimatedSurface : Control
         }
 
         _buffer?.Dispose();
-        _buffer = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb);
+        _buffer = new Bitmap(Width, Height, PixelFormat.Format32bppRgb);
         using (var g = Graphics.FromImage(_buffer))
         {
             g.Clear(_settings.BackgroundColor());
@@ -71,12 +74,15 @@ public sealed class AnimatedSurface : Control
         float baseSize = _settings.BaseSizePixels();
         _sim = new Simulation(Width, Height, _settings.LogoCount, TravelAngleDegrees,
             _settings.SpeedPixelsPerSecond(), baseSize * 0.7f, baseSize * 1.3f, _rng);
+
+        _cache?.Dispose();
+        _cache = _renderer.CreateSpriteCache(baseSize * 0.7f, baseSize * 1.3f, _settings.GhostCount());
         _lastMs = _clock.ElapsedMilliseconds;
     }
 
     private void Tick()
     {
-        if (_sim is null || _buffer is null)
+        if (_sim is null || _buffer is null || _cache is null)
         {
             return;
         }
@@ -88,13 +94,8 @@ public sealed class AnimatedSurface : Control
 
         using (var g = Graphics.FromImage(_buffer))
         {
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            using var fade = new SolidBrush(Color.FromArgb(_settings.FadeAlpha(), _settings.BackgroundColor()));
-            g.FillRectangle(fade, 0, 0, _buffer.Width, _buffer.Height);
-            foreach (var sprite in _sim.Sprites)
-            {
-                _renderer.Draw(g, sprite);
-            }
+            TrailRenderer.Render(g, _buffer.Width, _buffer.Height, _settings.BackgroundColor(),
+                _sim.Sprites, 0f, 0f, DirX, DirY, _cache);
         }
 
         Invalidate();
@@ -119,6 +120,7 @@ public sealed class AnimatedSurface : Control
         {
             _timer.Dispose();
             _buffer?.Dispose();
+            _cache?.Dispose();
         }
 
         base.Dispose(disposing);

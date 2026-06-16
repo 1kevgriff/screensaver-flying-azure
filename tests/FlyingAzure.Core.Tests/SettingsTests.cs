@@ -47,10 +47,11 @@ public class SettingsTests
     }
 
     [Fact]
-    public void FadeAlpha_LongerTrail_LowerAlpha()
+    public void GhostCount_LongerTrail_MoreGhosts()
     {
-        Assert.True((Settings.Default with { TrailLength = 100 }).FadeAlpha()
-            < (Settings.Default with { TrailLength = 0 }).FadeAlpha());
+        Assert.True((Settings.Default with { TrailLength = 100 }).GhostCount()
+            > (Settings.Default with { TrailLength = 0 }).GhostCount());
+        Assert.Equal(0, (Settings.Default with { TrailLength = 0 }).GhostCount());
     }
 
     [Fact]

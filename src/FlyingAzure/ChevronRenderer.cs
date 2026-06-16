@@ -10,7 +10,6 @@ public sealed partial class ChevronRenderer : IDisposable
     private static readonly Color AzureBlue = Color.FromArgb(0x00, 0xAB, 0xEC);
 
     private readonly GraphicsPath _path;
-    private readonly SolidBrush _brush = new(AzureBlue);
 
     public ChevronRenderer(string svgPathData)
     {
@@ -24,20 +23,9 @@ public sealed partial class ChevronRenderer : IDisposable
 
     public GraphicsPath Path => _path;
 
-    public void Draw(Graphics g, Sprite sprite)
-    {
-        var state = g.Save();
-        try
-        {
-            g.TranslateTransform(sprite.Position.X, sprite.Position.Y);
-            g.ScaleTransform(sprite.Size, sprite.Size);
-            g.FillPath(_brush, _path);
-        }
-        finally
-        {
-            g.Restore(state);
-        }
-    }
+    /// <summary>Pre-rasterizes the chevron into a <see cref="SpriteCache"/> for fast per-frame blitting.</summary>
+    public SpriteCache CreateSpriteCache(float minSize, float maxSize, int ghostCount) =>
+        new(_path, AzureBlue, minSize, maxSize, ghostCount);
 
     public static ChevronRenderer FromEmbeddedAsset()
     {
@@ -61,6 +49,5 @@ public sealed partial class ChevronRenderer : IDisposable
     public void Dispose()
     {
         _path.Dispose();
-        _brush.Dispose();
     }
 }

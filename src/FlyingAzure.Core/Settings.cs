@@ -24,8 +24,11 @@ public sealed record Settings
 
     public float BaseSizePixels() => 28f + Math.Clamp(Size, 0, 100) / 100f * 172f;
 
-    // Longer trail => lower per-frame fade alpha. Floor of 6 keeps the buffer from never clearing.
-    public int FadeAlpha() => 6 + (int)Math.Round((100 - Math.Clamp(TrailLength, 0, 100)) / 100.0 * 54);
+    /// <summary>
+    /// Number of fading "ghost" copies drawn behind each logo to form its motion trail.
+    /// Longer trail => more ghosts. Resolution-independent (cost scales with sprites, not pixels).
+    /// </summary>
+    public int GhostCount() => (int)Math.Round(Math.Clamp(TrailLength, 0, 100) / 100.0 * 16);
 
     public Color BackgroundColor() => Color.FromArgb(BackgroundArgb);
 }
