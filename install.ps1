@@ -56,6 +56,19 @@ function Test-Admin {
         [Security.Principal.WindowsBuiltinRole]::Administrator)
 }
 
+# 0. Self-elevate for a System install ---------------------------------------
+if ($System -and -not (Test-Admin)) {
+    Write-Host 'A System32 install needs administrator rights — launching an elevated instance.' -ForegroundColor Yellow
+    Write-Host 'Approve the UAC prompt when it appears...' -ForegroundColor Yellow
+    $hostExe = (Get-Process -Id $PID).Path
+    $argv = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-System', '-TimeoutMinutes', $TimeoutMinutes)
+    if ($NoActivate) { $argv += '-NoActivate' }
+    if ($NoBuild)    { $argv += '-NoBuild' }
+    Start-Process -FilePath $hostExe -Verb RunAs -ArgumentList $argv
+    Write-Host 'Elevated installer launched. This window can be closed.' -ForegroundColor Cyan
+    return
+}
+
 # 1. Build (unless skipped) ---------------------------------------------------
 if (-not $NoBuild) {
     Write-Host 'Building (Release)...' -ForegroundColor Cyan
@@ -69,9 +82,6 @@ if (-not (Test-Path $buildScr)) {
 
 # 2. Resolve destination ------------------------------------------------------
 if ($System) {
-    if (-not (Test-Admin)) {
-        throw '-System requires an elevated PowerShell session. Re-run as Administrator, or omit -System for a per-user install.'
-    }
     $destDir = Join-Path $env:WINDIR 'System32'
 } else {
     $destDir = Join-Path $env:LOCALAPPDATA 'FlyingAzure'
