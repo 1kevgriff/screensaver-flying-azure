@@ -14,6 +14,7 @@ public sealed class SettingsStore(ISettingsBackend backend)
             Size = ReadInt(nameof(Settings.Size), d.Size),
             TrailLength = ReadInt(nameof(Settings.TrailLength), d.TrailLength),
             BackgroundArgb = ReadInt(nameof(Settings.BackgroundArgb), d.BackgroundArgb),
+            Clock = (ClockCorner)ReadInt(nameof(Settings.Clock), (int)d.Clock),
         }.Clamp();
     }
 
@@ -25,6 +26,7 @@ public sealed class SettingsStore(ISettingsBackend backend)
         Write(nameof(Settings.Size), s.Size);
         Write(nameof(Settings.TrailLength), s.TrailLength);
         Write(nameof(Settings.BackgroundArgb), s.BackgroundArgb);
+        Write(nameof(Settings.Clock), (int)s.Clock);
     }
 
     private int ReadInt(string key, int fallback) =>

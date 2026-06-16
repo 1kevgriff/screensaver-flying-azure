@@ -13,6 +13,8 @@ public sealed class ConfigForm : Form
     private readonly TrackBar _size = NewTrack(0, 100);
     private readonly TrackBar _trail = NewTrack(0, 100);
     private readonly Button _colorButton = new() { Text = "Background…", Width = 110, Height = 28 };
+    // Order matches the ClockCorner enum (Off, TopLeft, TopRight, BottomLeft, BottomRight).
+    private readonly ComboBox _clock = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
 
     private Color _background;
 
@@ -26,12 +28,14 @@ public sealed class ConfigForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(440, 520);
+        ClientSize = new Size(440, 560);
 
         _count.Value = settings.LogoCount;
         _speed.Value = settings.Speed;
         _size.Value = settings.Size;
         _trail.Value = settings.TrailLength;
+        _clock.Items.AddRange(["Off", "Top-left", "Top-right", "Bottom-left", "Bottom-right"]);
+        _clock.SelectedIndex = (int)settings.Clock;
 
         var layout = new TableLayoutPanel
         {
@@ -45,6 +49,7 @@ public sealed class ConfigForm : Form
         AddRow(layout, "Logo size", _size);
         AddRow(layout, "Trail length", _trail);
         AddRow(layout, "Background", _colorButton);
+        AddRow(layout, "Date / time", _clock);
 
         _preview = new AnimatedSurface(CurrentSettings(), renderer)
         {
@@ -79,6 +84,8 @@ public sealed class ConfigForm : Form
             track.ValueChanged += (_, _) => RefreshPreview();
         }
 
+        _clock.SelectedIndexChanged += (_, _) => RefreshPreview();
+
         _colorButton.Click += (_, _) =>
         {
             using var dialog = new ColorDialog { Color = _background, FullOpen = true };
@@ -106,6 +113,7 @@ public sealed class ConfigForm : Form
         Size = _size.Value,
         TrailLength = _trail.Value,
         BackgroundArgb = _background.ToArgb(),
+        Clock = (ClockCorner)Math.Max(0, _clock.SelectedIndex),
     };
 
     private void RefreshPreview()

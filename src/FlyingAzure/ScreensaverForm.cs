@@ -22,9 +22,11 @@ public sealed partial class ScreensaverForm : Form
     private readonly float _dirX;
     private readonly float _dirY;
     private readonly Color _background;
+    private readonly ClockCorner _clockCorner;
     private readonly BufferedGraphicsContext _bufferContext = new();
     private BufferedGraphics? _backBuffer;
     private Graphics? _present;
+    private ClockOverlay? _clock;
 
     private Point _initialMouse;
     private bool _mouseInitialized;
@@ -42,6 +44,7 @@ public sealed partial class ScreensaverForm : Form
         _dirX = dirX;
         _dirY = dirY;
         _background = settings.BackgroundColor();
+        _clockCorner = settings.Clock;
 
         // Don't let WinForms rescale this window by DPI — we place it in physical pixels
         // via SetWindowPos so it covers a scaled monitor exactly (no exposed edges/taskbar).
@@ -69,6 +72,7 @@ public sealed partial class ScreensaverForm : Form
         _present = CreateGraphics();
         _backBuffer = _bufferContext.Allocate(_present, new Rectangle(Point.Empty, size));
         _backBuffer.Graphics.Clear(_background);
+        _clock = new ClockOverlay(_screenBounds.Height);
     }
 
     /// <summary>
@@ -85,6 +89,7 @@ public sealed partial class ScreensaverForm : Form
 
         TrailRenderer.Render(_backBuffer.Graphics, _screenBounds.Width, _screenBounds.Height, _background,
             sprites, _offsetX, _offsetY, _dirX, _dirY, _cache);
+        _clock?.Draw(_backBuffer.Graphics, _screenBounds.Width, _screenBounds.Height, _clockCorner);
 
         if (_present is not null)
         {
@@ -161,6 +166,7 @@ public sealed partial class ScreensaverForm : Form
         if (disposing)
         {
             Cursor.Show();
+            _clock?.Dispose();
             _present?.Dispose();
             _backBuffer?.Dispose();
             _bufferContext.Dispose();

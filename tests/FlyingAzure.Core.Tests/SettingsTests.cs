@@ -25,7 +25,7 @@ public class SettingsTests
     {
         var backend = new InMemoryBackend();
         var store = new SettingsStore(backend);
-        var s = Settings.Default with { LogoCount = 33, Speed = 70, Size = 40, TrailLength = 90, BackgroundArgb = unchecked((int)0xFF102030) };
+        var s = Settings.Default with { LogoCount = 33, Speed = 70, Size = 40, TrailLength = 90, BackgroundArgb = unchecked((int)0xFF102030), Clock = ClockCorner.TopLeft };
         store.Save(s);
         Assert.Equal(s, store.Load());
     }

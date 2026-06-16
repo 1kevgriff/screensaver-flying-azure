@@ -20,6 +20,7 @@ public sealed class AnimatedSurface : Control
     private Settings _settings;
     private Simulation? _sim;
     private SpriteCache? _cache;
+    private ClockOverlay? _clockOverlay;
     private Bitmap? _buffer;
     private long _lastMs;
 
@@ -77,6 +78,9 @@ public sealed class AnimatedSurface : Control
 
         _cache?.Dispose();
         _cache = _renderer.CreateSpriteCache(baseSize * 0.7f, baseSize * 1.3f, _settings.GhostCount());
+
+        _clockOverlay?.Dispose();
+        _clockOverlay = new ClockOverlay(Height);
         _lastMs = _clock.ElapsedMilliseconds;
     }
 
@@ -96,6 +100,7 @@ public sealed class AnimatedSurface : Control
         {
             TrailRenderer.Render(g, _buffer.Width, _buffer.Height, _settings.BackgroundColor(),
                 _sim.Sprites, 0f, 0f, DirX, DirY, _cache);
+            _clockOverlay?.Draw(g, _buffer.Width, _buffer.Height, _settings.Clock);
         }
 
         Invalidate();
@@ -121,6 +126,7 @@ public sealed class AnimatedSurface : Control
             _timer.Dispose();
             _buffer?.Dispose();
             _cache?.Dispose();
+            _clockOverlay?.Dispose();
         }
 
         base.Dispose(disposing);
