@@ -17,6 +17,11 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>FlyingAzure</AssemblyName>
   </PropertyGroup>
+
+  <Target Name="CopyToScr" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(TargetDir)FlyingAzure.scr" />
+  </Target>
 
 </Project>
