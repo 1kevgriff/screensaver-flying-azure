@@ -19,7 +19,7 @@ public static partial class SvgPathParser
         int i = 0;
 
         float Num() => float.Parse(tokens[i++], CultureInfo.InvariantCulture);
-        static bool IsCmd(string t) => t.Length == 1 && "MLHVZmlhvz".Contains(t[0]);
+        static bool IsCmd(string t) => t.Length == 1 && char.IsLetter(t[0]);
 
         while (i < tokens.Count)
         {
