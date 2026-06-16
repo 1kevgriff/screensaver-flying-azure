@@ -20,8 +20,13 @@ internal static class Program
                 PreviewHost.Run(settings, parsed.WindowHandle);
                 return 0;
             case ScreensaverMode.Configure:
-                // Implemented in Task 10.
+            {
+                using var renderer = ChevronRenderer.FromEmbeddedAsset();
+                var store = new SettingsStore(new RegistrySettingsBackend());
+                using var form = new ConfigForm(settings, store, renderer);
+                Application.Run(form);
                 return 0;
+            }
             case ScreensaverMode.Run:
             default:
                 RunScreensaver(settings);
