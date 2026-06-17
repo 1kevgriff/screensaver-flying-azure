@@ -65,8 +65,14 @@ jobs:
           if-no-files-found: error
 
   macos:
-    name: macOS .saver (.pkg)
+    name: macOS .saver
     runs-on: macos-latest
+    env:
+      APPLE_DEVELOPER_ID_CERT: ${{ secrets.APPLE_DEVELOPER_ID_CERT }}
+      APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -83,19 +89,27 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.*.props', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # Phase-gated scaffold. Today this only builds the cross-platform Core so the
-      # macOS leg of the release is exercised. The real artifact requires:
-      #   1. FlyingAzure.Engine published as a NativeAOT dylib (osx-arm64 + osx-x64, lipo'd)
-      #   2. the Swift .saver built via xcodebuild
-      #   3. codesign (Developer ID) of every embedded dylib + the bundle, then notarize + staple
-      #   4. productbuild a FlyingAzure-<version>.pkg
-      # Secrets (added when Phase 0 proves the approach): APPLE_DEVELOPER_ID_CERT (.p12),
-      # APPLE_CERT_PASSWORD, APPLE_TEAM_ID, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD.
-      - name: Build FlyingAzure.Core (parity check)
-        run: dotnet build src/FlyingAzure.Core/FlyingAzure.Core.csproj -c Release
+      - name: Install XcodeGen
+        run: brew install xcodegen
 
-      - name: Note macOS packaging status
-        run: echo "::notice::macOS .saver packaging is scaffolded; produces no artifact until Phases 1+3 land. See plan."
+      # Builds the .saver (publish AOT engine -> xcodebuild -> embed dylibs -> ad-hoc sign -> zip).
+      - name: Build macOS .saver
+        run: bash macos/build-saver.sh osx-arm64
+
+      # Real Developer ID signing + notarization, guarded on secrets so it degrades to the
+      # ad-hoc-signed zip on forks/PRs. Re-signs every embedded dylib + the bundle with the
+      # developer's Team ID (the reliable path, since the .saver loads inside Apple's appex),
+      # then notarizes and staples.
+      - name: Sign & notarize (Developer ID)
+        if: ${{ env.APPLE_DEVELOPER_ID_CERT != '' }}
+        run: bash macos/sign-notarize.sh "FlyingAzure-osx-arm64.saver.zip"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos
+          path: FlyingAzure-osx-arm64.saver.zip
+          if-no-files-found: error
 
   release:
     name: Publish GitHub Release
@@ -105,10 +119,9 @@ jobs:
     # workflow_dispatch run skips this job, making it a safe build/package dry-run.
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download Windows artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
-          name: windows
           path: artifacts
 
       - name: Publish release
@@ -117,4 +130,5 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
-            artifacts/FlyingAzure-Screensaver-win-x64.zip
+            artifacts/windows/FlyingAzure-Screensaver-win-x64.zip
+            artifacts/macos/FlyingAzure-osx-arm64.saver.zip
