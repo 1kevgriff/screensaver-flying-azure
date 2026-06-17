@@ -105,12 +105,9 @@ final class FlyingAzureView: ScreenSaverView {
                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: info),
                 let image = ctx.makeImage() else { return }
 
-            // Skia's origin is top-left; Core Graphics is bottom-left — flip vertically.
-            nsContext.saveGState()
-            nsContext.translateBy(x: 0, y: bounds.height)
-            nsContext.scaleBy(x: 1, y: -1)
+            // The screensaver view's draw context is already top-left oriented (matching
+            // Skia's top-left frame), so blit the image directly — no vertical flip.
             nsContext.draw(image, in: bounds)
-            nsContext.restoreGState()
         }
     }
 
