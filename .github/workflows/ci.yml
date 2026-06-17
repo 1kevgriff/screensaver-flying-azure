@@ -78,7 +78,17 @@ jobs:
           dotnet build src/FlyingAzure.Engine/FlyingAzure.Engine.csproj -c Release
           dotnet test tests/FlyingAzure.Engine.Tests/FlyingAzure.Engine.Tests.csproj -c Release
 
-      # Validates the load-bearing unknown on a real Mac runner: that the engine + SkiaSharp
-      # compile and link as a NativeAOT shared library (.dylib) for Apple Silicon.
-      - name: Publish NativeAOT engine dylib (osx-arm64)
-        run: dotnet publish src/FlyingAzure.Engine/FlyingAzure.Engine.csproj -c Release -r osx-arm64 -p:PublishAot=true -p:NativeLib=Shared
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # Publishes the NativeAOT engine dylib, builds the Swift ScreenSaverView .saver via
+      # xcodebuild, embeds the engine + Skia dylibs, ad-hoc signs, and zips it.
+      - name: Build macOS .saver
+        run: bash macos/build-saver.sh osx-arm64
+
+      - name: Upload macOS .saver
+        uses: actions/upload-artifact@v7
+        with:
+          name: FlyingAzure-macos-saver
+          path: FlyingAzure-osx-arm64.saver.zip
+          if-no-files-found: error

@@ -1,0 +1,45 @@
+# XcodeGen spec for the Flying Azure macOS screensaver (.saver bundle).
+# Generated into FlyingAzure.xcodeproj at build time so we don't check in a fragile pbxproj.
+name: FlyingAzure
+options:
+  bundleIdPrefix: com.kevgriffin
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+targets:
+  FlyingAzure:
+    type: bundle
+    platform: macOS
+    sources:
+      - Sources
+    dependencies:
+      - sdk: ScreenSaver.framework
+      - sdk: AppKit.framework
+    info:
+      path: Generated/Info.plist
+      properties:
+        CFBundleName: FlyingAzure
+        CFBundleDisplayName: Flying Azure
+        CFBundleExecutable: FlyingAzure
+        CFBundlePackageType: BNDL
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSPrincipalClass: FlyingAzureView
+        NSHumanReadableCopyright: "Kevin Griffin"
+        LSMinimumSystemVersion: "14.0"
+    settings:
+      base:
+        PRODUCT_NAME: FlyingAzure
+        PRODUCT_BUNDLE_IDENTIFIER: com.kevgriffin.flyingazure
+        WRAPPER_EXTENSION: saver
+        MACH_O_TYPE: mh_bundle
+        SWIFT_VERSION: "5.0"
+        SKIP_INSTALL: YES
+        # Ad-hoc signing in CI; release signing is applied by the release workflow.
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        # Embedded engine + Skia dylibs are copied into Contents/Frameworks post-build.
+        LD_RUNPATH_SEARCH_PATHS:
+          - "@loader_path/../Frameworks"
