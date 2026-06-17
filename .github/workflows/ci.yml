@@ -69,9 +69,16 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.*.props', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # Only FlyingAzure.Core (net10.0) is cross-platform today. The shared
-      # FlyingAzure.Engine (NativeAOT + SkiaSharp) and its golden-image tests are
-      # added in Phase 1 and will build/run here; the .saver bundle (xcodebuild +
-      # codesign + notarize) is wired into release.yml once Phase 3 lands.
-      - name: Build FlyingAzure.Core
-        run: dotnet build src/FlyingAzure.Core/FlyingAzure.Core.csproj -c Release
+      # The cross-platform stack: portable Core + the SkiaSharp render Engine and its
+      # golden-image tests. These prove the shared render path builds and produces pixels
+      # on macOS — the parity guarantee behind "one engine, two hosts". The .saver bundle
+      # (xcodebuild + codesign + notarize) is wired into release.yml once Phase 3 lands.
+      - name: Build & test cross-platform engine
+        run: |
+          dotnet build src/FlyingAzure.Engine/FlyingAzure.Engine.csproj -c Release
+          dotnet test tests/FlyingAzure.Engine.Tests/FlyingAzure.Engine.Tests.csproj -c Release
+
+      # Validates the load-bearing unknown on a real Mac runner: that the engine + SkiaSharp
+      # compile and link as a NativeAOT shared library (.dylib) for Apple Silicon.
+      - name: Publish NativeAOT engine dylib (osx-arm64)
+        run: dotnet publish src/FlyingAzure.Engine/FlyingAzure.Engine.csproj -c Release -r osx-arm64 -p:PublishAot=true -p:NativeLib=Shared
