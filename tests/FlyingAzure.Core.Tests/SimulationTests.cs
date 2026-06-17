@@ -16,13 +16,25 @@ public class SimulationTests
     }
 
     [Fact]
-    public void Step_MovesSpriteAlongAngle()
+    public void Step_MovesSpriteAtItsOwnSpeedAlongAngle()
     {
         var sim = Make(1, 0); // angle 0 => dx=1, dy=0
-        var start = sim.Sprites[0].Position;
-        sim.Step(1.0); // 100 px/sec * 1 sec = +100 x
-        Assert.Equal(start.X + 100f, sim.Sprites[0].Position.X, 2);
-        Assert.Equal(start.Y, sim.Sprites[0].Position.Y, 2);
+        var sprite = sim.Sprites[0];
+        var start = sprite.Position;
+        sim.Step(1.0); // moves the sprite's own per-sprite speed in 1 second
+        Assert.Equal(start.X + sprite.Speed, sprite.Position.X, 2);
+        Assert.Equal(start.Y, sprite.Position.Y, 2);
+    }
+
+    [Fact]
+    public void Ctor_GivesSpritesVariedSpeedsAroundTheBase()
+    {
+        var sim = Make(40, 150); // base speed 100
+        var speeds = sim.Sprites.Select(s => s.Speed).ToList();
+
+        // Each sprite stays within +/-60% of the base (100), but they are not all identical.
+        Assert.All(speeds, sp => Assert.InRange(sp, 40f, 160f));
+        Assert.True(speeds.Distinct().Count() > 1, "expected logos to fly at different speeds");
     }
 
     [Fact]
