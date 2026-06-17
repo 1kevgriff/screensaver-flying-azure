@@ -114,8 +114,8 @@ jobs:
         run: brew install xcodegen
 
       # Builds the .saver (publish AOT engine -> xcodebuild -> embed dylibs -> ad-hoc sign -> zip).
-      - name: Build macOS .saver
-        run: bash macos/build-saver.sh osx-arm64
+      - name: Build macOS .saver (universal)
+        run: bash macos/build-saver.sh
 
       # Real Developer ID signing + notarization, guarded on secrets so it degrades to the
       # ad-hoc-signed zip on forks/PRs. Re-signs every embedded dylib + the bundle with the
@@ -123,7 +123,7 @@ jobs:
       # then notarizes and staples.
       - name: Sign & notarize (Developer ID)
         if: ${{ env.APPLE_DEVELOPER_ID_CERT != '' }}
-        run: bash macos/sign-notarize.sh "FlyingAzure-osx-arm64.saver.zip"
+        run: bash macos/sign-notarize.sh "FlyingAzure-osx-universal.saver.zip"
 
       # Build a guided .pkg installer (installs into /Library/Screen Savers). Needs a
       # Developer ID INSTALLER cert; skipped until that secret is present.
@@ -132,14 +132,14 @@ jobs:
         run: |
           ref="${{ github.ref }}"
           ver="${ref#refs/tags/v}"; [ "$ver" = "$ref" ] && ver="0.0.0"
-          bash macos/build-pkg.sh "FlyingAzure-osx-arm64.saver.zip" "$ver"
+          bash macos/build-pkg.sh "FlyingAzure-osx-universal.saver.zip" "$ver"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v7
         with:
           name: macos
           path: |
-            FlyingAzure-osx-arm64.saver.zip
+            FlyingAzure-osx-universal.saver.zip
             FlyingAzure-osx-*.pkg
           if-no-files-found: error
 

@@ -7,3 +7,10 @@ build/
 *.zip
 *.pkg
 FlyingAzure-Setup-x64.exe
+
+# Generated macOS build artifacts (xcodegen output, lipo'd libs, xcodebuild derived data)
+macos/FlyingAzure.xcodeproj/
+macos/Generated/
+macos/universal-libs/
+macos/build/
+macos/FlyingAzure.iconset/

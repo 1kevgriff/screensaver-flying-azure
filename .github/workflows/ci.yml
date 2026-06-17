@@ -88,12 +88,12 @@ jobs:
 
       # Publishes the NativeAOT engine dylib, builds the Swift ScreenSaverView .saver via
       # xcodebuild, embeds the engine + Skia dylibs, ad-hoc signs, and zips it.
-      - name: Build macOS .saver
-        run: bash macos/build-saver.sh osx-arm64
+      - name: Build macOS .saver (universal)
+        run: bash macos/build-saver.sh
 
       - name: Upload macOS .saver
         uses: actions/upload-artifact@v7
         with:
           name: FlyingAzure-macos-saver
-          path: FlyingAzure-osx-arm64.saver.zip
+          path: FlyingAzure-osx-universal.saver.zip
           if-no-files-found: error
