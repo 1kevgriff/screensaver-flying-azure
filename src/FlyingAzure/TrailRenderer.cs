@@ -31,6 +31,7 @@ internal static class TrailRenderer
             float y = sprite.Position.Y - offsetY;
             float margin = sprite.Size;
             float gap = sprite.Size * GhostSpacingFactor;
+            int bucket = cache.BucketOf(sprite.Size); // size is constant per sprite
 
             for (int k = ghostCount; k >= 1; k--)
             {
@@ -41,12 +42,12 @@ internal static class TrailRenderer
                     continue;
                 }
 
-                cache.Draw(g, gx, gy, sprite.Size, k);
+                cache.Draw(g, gx, gy, bucket, k);
             }
 
             if (x >= -margin && x <= width + margin && y >= -margin && y <= height + margin)
             {
-                cache.Draw(g, x, y, sprite.Size, 0);
+                cache.Draw(g, x, y, bucket, 0);
             }
         }
     }

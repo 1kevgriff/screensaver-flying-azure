@@ -19,6 +19,14 @@ public sealed class ClockOverlay : IDisposable
     private readonly Brush _fill = new SolidBrush(Color.FromArgb(235, 255, 255, 255));
     private readonly Brush _shadow = new SolidBrush(Color.FromArgb(150, 0, 0, 0));
 
+    // The displayed text changes only once per second, so the formatted strings and their
+    // measured sizes are cached and refreshed on a second boundary rather than every frame.
+    private int _cachedSecond = -1;
+    private string _time = string.Empty;
+    private string _date = string.Empty;
+    private SizeF _timeSize;
+    private SizeF _dateSize;
+
     public ClockOverlay(int surfaceHeight)
     {
         float timePx = Math.Clamp(surfaceHeight * 0.030f, 16f, 44f);
@@ -33,16 +41,21 @@ public sealed class ClockOverlay : IDisposable
             return;
         }
 
-        var now = DateTime.Now;
-        var culture = CultureInfo.CurrentCulture;
-        string time = now.ToString("T", culture); // culture long time
-        string date = now.ToString("D", culture); // culture long date
-
         g.TextRenderingHint = TextRenderingHint.AntiAlias;
-        SizeF timeSize = g.MeasureString(time, _timeFont);
-        SizeF dateSize = g.MeasureString(date, _dateFont);
-        float blockW = Math.Max(timeSize.Width, dateSize.Width);
-        float blockH = timeSize.Height + dateSize.Height;
+
+        var now = DateTime.Now;
+        if (now.Second != _cachedSecond)
+        {
+            _cachedSecond = now.Second;
+            var culture = CultureInfo.CurrentCulture;
+            _time = now.ToString("T", culture); // culture long time
+            _date = now.ToString("D", culture); // culture long date
+            _timeSize = g.MeasureString(_time, _timeFont);
+            _dateSize = g.MeasureString(_date, _dateFont);
+        }
+
+        float blockW = Math.Max(_timeSize.Width, _dateSize.Width);
+        float blockH = _timeSize.Height + _dateSize.Height;
 
         bool right = corner is ClockCorner.TopRight or ClockCorner.BottomRight;
         bool bottom = corner is ClockCorner.BottomLeft or ClockCorner.BottomRight;
@@ -50,8 +63,8 @@ public sealed class ClockOverlay : IDisposable
         float top = bottom ? height - Padding - blockH : Padding;
 
         // Right corners are right-aligned within the block; left corners left-aligned.
-        DrawLine(g, time, _timeFont, right ? left + blockW - timeSize.Width : left, top);
-        DrawLine(g, date, _dateFont, right ? left + blockW - dateSize.Width : left, top + timeSize.Height);
+        DrawLine(g, _time, _timeFont, right ? left + blockW - _timeSize.Width : left, top);
+        DrawLine(g, _date, _dateFont, right ? left + blockW - _dateSize.Width : left, top + _timeSize.Height);
     }
 
     private void DrawLine(Graphics g, string text, Font font, float x, float y)

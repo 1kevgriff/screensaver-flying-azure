@@ -113,7 +113,7 @@ public sealed class ConfigForm : Form
         Size = _size.Value,
         TrailLength = _trail.Value,
         BackgroundArgb = _background.ToArgb(),
-        Clock = (ClockCorner)Math.Max(0, _clock.SelectedIndex),
+        Clock = (ClockCorner)_clock.SelectedIndex,
     };
 
     private void RefreshPreview()

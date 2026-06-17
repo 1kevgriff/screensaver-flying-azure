@@ -54,7 +54,9 @@ public sealed class Simulation
         }
     }
 
-    private (float dx, float dy) Direction()
+    /// <summary>Unit travel vector (cos, sin of <see cref="AngleDegrees"/>) — the single
+    /// source of truth callers use for trail/ghost direction instead of recomputing it.</summary>
+    public (float X, float Y) Direction()
     {
         float radians = AngleDegrees * MathF.PI / 180f;
         return (MathF.Cos(radians), MathF.Sin(radians));

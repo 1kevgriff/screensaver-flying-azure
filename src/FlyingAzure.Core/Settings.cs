@@ -26,6 +26,11 @@ public sealed record Settings
 
     public float BaseSizePixels() => 28f + Math.Clamp(Size, 0, 100) / 100f * 172f;
 
+    // Per-logo size varies +/-30% around the base for depth.
+    public float MinLogoSizePixels() => BaseSizePixels() * 0.7f;
+
+    public float MaxLogoSizePixels() => BaseSizePixels() * 1.3f;
+
     /// <summary>
     /// Number of fading "ghost" copies drawn behind each logo to form its motion trail.
     /// Longer trail => more ghosts. Resolution-independent (cost scales with sprites, not pixels).

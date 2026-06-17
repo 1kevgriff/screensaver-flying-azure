@@ -32,7 +32,7 @@ public sealed class SpriteCache : IDisposable
         _bitmaps = new Bitmap[Buckets][];
         for (int bucket = 0; bucket < Buckets; bucket++)
         {
-            float size = Buckets == 1 ? minSize : minSize + _range * bucket / (Buckets - 1);
+            float size = minSize + _range * bucket / (Buckets - 1);
             int dim = Math.Max(1, (int)MathF.Ceiling(size)) + 2; // +2 px padding so anti-aliased edges aren't clipped
 
             _bitmaps[bucket] = new Bitmap[GhostCount + 1];
@@ -54,7 +54,9 @@ public sealed class SpriteCache : IDisposable
         }
     }
 
-    private int BucketOf(float size)
+    /// <summary>Maps a sprite size to its cached bucket. A sprite's size is constant, so
+    /// callers resolve the bucket once per sprite and reuse it for the sprite and its ghosts.</summary>
+    public int BucketOf(float size)
     {
         int b = (int)MathF.Round((size - _minSize) / _range * (Buckets - 1));
         return Math.Clamp(b, 0, Buckets - 1);
@@ -62,9 +64,9 @@ public sealed class SpriteCache : IDisposable
 
     /// <summary>Blits the cached sprite centered at (cx, cy). <paramref name="level"/> 0 is the
     /// full sprite; 1..<see cref="GhostCount"/> are progressively fainter ghosts.</summary>
-    public void Draw(Graphics g, float cx, float cy, float size, int level)
+    public void Draw(Graphics g, float cx, float cy, int bucket, int level)
     {
-        var bmp = _bitmaps[BucketOf(size)][level];
+        var bmp = _bitmaps[bucket][level];
         g.DrawImageUnscaled(bmp, (int)(cx - bmp.Width / 2f), (int)(cy - bmp.Height / 2f));
     }
 

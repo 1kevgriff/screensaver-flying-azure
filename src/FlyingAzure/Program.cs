@@ -52,14 +52,12 @@ internal static partial class Program
     {
         // One simulation across the whole virtual desktop, so logos flow between monitors.
         var virtualScreen = SystemInformation.VirtualScreen;
-        float dirX = MathF.Cos(TravelAngleDegrees * MathF.PI / 180f);
-        float dirY = MathF.Sin(TravelAngleDegrees * MathF.PI / 180f);
-        float baseSize = settings.BaseSizePixels();
         var simulation = new Simulation(virtualScreen.Width, virtualScreen.Height, settings.LogoCount,
-            TravelAngleDegrees, settings.SpeedPixelsPerSecond(), baseSize * 0.7f, baseSize * 1.3f, new Random());
+            TravelAngleDegrees, settings.SpeedPixelsPerSecond(), settings.MinLogoSizePixels(), settings.MaxLogoSizePixels(), new Random());
+        var (dirX, dirY) = simulation.Direction();
 
         using var renderer = ChevronRenderer.FromEmbeddedAsset();
-        using var cache = renderer.CreateSpriteCache(baseSize * 0.7f, baseSize * 1.3f, settings.GhostCount());
+        using var cache = renderer.CreateSpriteCache(settings.MinLogoSizePixels(), settings.MaxLogoSizePixels(), settings.GhostCount());
 
         var forms = new List<ScreensaverForm>();
         foreach (var screen in Screen.AllScreens)
@@ -87,7 +85,7 @@ internal static partial class Program
         {
             while (IsApplicationIdle())
             {
-                double tMs = clock.Elapsed.TotalMilliseconds;
+                double tMs = clock.ElapsedMilliseconds;
                 if (tMs < nextFrameMs)
                 {
                     System.Threading.Thread.Sleep(1); // throttle to the target frame rate
