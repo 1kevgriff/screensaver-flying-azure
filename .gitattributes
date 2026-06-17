@@ -1,0 +1,5 @@
+# Shell scripts must stay LF or they break on macOS/Linux runners.
+*.sh text eol=lf
+# Keep these LF too for cross-platform tooling consistency.
+*.yml text eol=lf
+*.swift text eol=lf
