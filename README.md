@@ -12,6 +12,8 @@ logos faster than others. Inspired by After Dark's *Flying Toasters*. Multi-moni
 aware, with a settings dialog and an optional culture-formatted clock. Windows and
 macOS share one SkiaSharp render engine (compiled to a native library via NativeAOT).
 
+![Flying Azure screensaver — Azure chevrons flying across a black screen with motion trails and a clock](assets/screenshot.png)
+
 ## Download
 
 Grab the latest builds from the [**Releases**](https://github.com/1kevgriff/screensaver-flying-azure/releases/latest) page:
