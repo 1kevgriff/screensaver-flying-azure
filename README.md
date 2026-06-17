@@ -70,7 +70,8 @@ switches:
 
 Settings persist to `HKCU\Software\FlyingAzure`:
 
-- **Number of logos**, **Speed**, **Logo size**, **Trail length**, **Background color**
+- **Number of logos**, **Speed**, **Logo size**, **Trail length**, **Background color**,
+  **Date / time** clock corner (off / any corner; shown on every monitor, formatted in your culture)
 
 ## Logo asset
 

@@ -36,7 +36,15 @@ internal static partial class Program
                 using var renderer = ChevronRenderer.FromEmbeddedAsset();
                 var store = new SettingsStore(new RegistrySettingsBackend());
                 using var form = new ConfigForm(settings, store, renderer);
-                Application.Run(form);
+                // The Screen Saver Settings panel passes its window as the owner; be modal to it.
+                if (parsed.WindowHandle != 0)
+                {
+                    form.ShowDialog(new OwnerWindow(parsed.WindowHandle));
+                }
+                else
+                {
+                    form.ShowDialog();
+                }
                 return 0;
             }
             case ScreensaverMode.Run:
@@ -60,13 +68,33 @@ internal static partial class Program
         using var cache = renderer.CreateSpriteCache(settings.MinLogoSizePixels(), settings.MaxLogoSizePixels(), settings.GhostCount());
 
         var forms = new List<ScreensaverForm>();
+        bool shuttingDown = false;
+        void Shutdown()
+        {
+            if (shuttingDown)
+            {
+                return;
+            }
+            shuttingDown = true;
+            foreach (var f in forms)
+            {
+                if (!f.IsDisposed)
+                {
+                    f.Close();
+                }
+            }
+            Application.Exit();
+        }
+
         foreach (var screen in Screen.AllScreens)
         {
             // Each window renders the field offset by its position within the virtual desktop.
             float offsetX = screen.Bounds.X - virtualScreen.X;
             float offsetY = screen.Bounds.Y - virtualScreen.Y;
             var form = new ScreensaverForm(settings, screen.Bounds, offsetX, offsetY, dirX, dirY, cache);
-            form.ExitRequested += (_, _) => CloseAll(forms);
+            form.ExitRequested += (_, _) => Shutdown();
+            // Fallback: if a window closes by any other path, tear the whole saver down too.
+            form.FormClosed += (_, _) => Shutdown();
             forms.Add(form);
         }
 
@@ -157,16 +185,9 @@ internal static partial class Program
         return Path.Combine(dir, "flyingazure.log");
     }
 
-    private static void CloseAll(List<ScreensaverForm> forms)
+    /// <summary>Wraps a raw HWND (e.g. the Screen Saver Settings panel) as a dialog owner.</summary>
+    private sealed class OwnerWindow(nint handle) : IWin32Window
     {
-        foreach (var form in forms)
-        {
-            if (!form.IsDisposed)
-            {
-                form.Close();
-            }
-        }
-
-        Application.Exit();
+        public IntPtr Handle { get; } = handle;
     }
 }

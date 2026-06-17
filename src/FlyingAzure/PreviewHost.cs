@@ -39,7 +39,7 @@ public static partial class PreviewHost
             form.Size = new Size(rc.Right - rc.Left, rc.Bottom - rc.Top);
         };
 
-        var watchdog = new System.Windows.Forms.Timer { Interval = 500 };
+        using var watchdog = new System.Windows.Forms.Timer { Interval = 500 };
         watchdog.Tick += (_, _) =>
         {
             if (!IsWindow(parentHandle))
@@ -48,8 +48,12 @@ public static partial class PreviewHost
             }
         };
         watchdog.Start();
+        form.FormClosed += (_, _) => watchdog.Stop();
 
-        Application.Run(form);
+        using (form)
+        {
+            Application.Run(form);
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

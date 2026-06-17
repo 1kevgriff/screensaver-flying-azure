@@ -19,6 +19,9 @@ public sealed record Settings
         Speed = Math.Clamp(Speed, 0, 100),
         Size = Math.Clamp(Size, 0, 100),
         TrailLength = Math.Clamp(TrailLength, 0, 100),
+        // Force opaque: the background fills an opaque buffer, and a stray alpha (e.g. a
+        // hand-edited registry value) would tint every frame via Graphics.Clear.
+        BackgroundArgb = BackgroundArgb | unchecked((int)0xFF000000),
         Clock = Enum.IsDefined(Clock) ? Clock : ClockCorner.BottomRight,
     };
 
