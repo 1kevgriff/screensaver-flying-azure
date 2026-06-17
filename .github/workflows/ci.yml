@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows build, test & package
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # MinVer needs full history + tags to compute the version
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore FlyingAzure.slnx
+
+      - name: Build
+        run: dotnet build FlyingAzure.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test FlyingAzure.slnx -c Release --no-build --verbosity normal
+
+      - name: Package screensaver (.scr + install scripts -> zip)
+        run: pwsh ./package.ps1 -OutputZip "${{ github.workspace }}/FlyingAzure-Screensaver-win-x64.zip"
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlyingAzure-Screensaver-win-x64
+          path: FlyingAzure-Screensaver-win-x64.zip
+          if-no-files-found: error
+
+  macos:
+    name: macOS cross-platform build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # Only FlyingAzure.Core (net10.0) is cross-platform today. The shared
+      # FlyingAzure.Engine (NativeAOT + SkiaSharp) and its golden-image tests are
+      # added in Phase 1 and will build/run here; the .saver bundle (xcodebuild +
+      # codesign + notarize) is wired into release.yml once Phase 3 lands.
+      - name: Build FlyingAzure.Core
+        run: dotnet build src/FlyingAzure.Core/FlyingAzure.Core.csproj -c Release
