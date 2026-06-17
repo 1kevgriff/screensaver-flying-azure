@@ -89,6 +89,7 @@ jobs:
     runs-on: macos-latest
     env:
       APPLE_DEVELOPER_ID_CERT: ${{ secrets.APPLE_DEVELOPER_ID_CERT }}
+      APPLE_INSTALLER_CERT: ${{ secrets.APPLE_INSTALLER_CERT }}
       APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -124,11 +125,22 @@ jobs:
         if: ${{ env.APPLE_DEVELOPER_ID_CERT != '' }}
         run: bash macos/sign-notarize.sh "FlyingAzure-osx-arm64.saver.zip"
 
-      - name: Upload macOS artifact
+      # Build a guided .pkg installer (installs into /Library/Screen Savers). Needs a
+      # Developer ID INSTALLER cert; skipped until that secret is present.
+      - name: Build .pkg installer
+        if: ${{ env.APPLE_INSTALLER_CERT != '' }}
+        run: |
+          ref="${{ github.ref }}"
+          ver="${ref#refs/tags/v}"; [ "$ver" = "$ref" ] && ver="0.0.0"
+          bash macos/build-pkg.sh "FlyingAzure-osx-arm64.saver.zip" "$ver"
+
+      - name: Upload macOS artifacts
         uses: actions/upload-artifact@v7
         with:
           name: macos
-          path: FlyingAzure-osx-arm64.saver.zip
+          path: |
+            FlyingAzure-osx-arm64.saver.zip
+            FlyingAzure-osx-*.pkg
           if-no-files-found: error
 
   release:
@@ -149,7 +161,8 @@ jobs:
         with:
           generate_release_notes: true
           fail_on_unmatched_files: true
+          # Attaches everything the build jobs produced: Windows installer + zip, the
+          # macOS .saver, and the .pkg installer when the Developer ID Installer cert is set.
           files: |
-            artifacts/windows/FlyingAzure-Setup-x64.exe
-            artifacts/windows/FlyingAzure-Screensaver-win-x64.zip
-            artifacts/macos/FlyingAzure-osx-arm64.saver.zip
+            artifacts/windows/*
+            artifacts/macos/*
