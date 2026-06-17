@@ -5,4 +5,18 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <!--
+    Tag-driven versioning: a 'vX.Y.Z' git tag is the single source of truth and
+    stamps Version / FileVersion / InformationalVersion into every assembly, so the
+    running screensaver knows its own version (used by the in-app update checker).
+    With no tags yet, MinVer produces 0.0.0-alpha.0.N — a valid placeholder.
+  -->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="all" />
+  </ItemGroup>
 </Project>
