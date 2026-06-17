@@ -16,13 +16,20 @@ jobs:
     name: Windows build, test & package
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # MinVer needs full history + tags to compute the version
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.*.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
 
       - name: Restore
         run: dotnet restore FlyingAzure.slnx
@@ -37,7 +44,7 @@ jobs:
         run: pwsh ./package.ps1 -OutputZip "${{ github.workspace }}/FlyingAzure-Screensaver-win-x64.zip"
 
       - name: Upload Windows package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FlyingAzure-Screensaver-win-x64
           path: FlyingAzure-Screensaver-win-x64.zip
@@ -47,13 +54,20 @@ jobs:
     name: macOS cross-platform build
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.*.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
 
       # Only FlyingAzure.Core (net10.0) is cross-platform today. The shared
       # FlyingAzure.Engine (NativeAOT + SkiaSharp) and its golden-image tests are

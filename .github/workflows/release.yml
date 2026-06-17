@@ -1,6 +1,8 @@
 name: Release
 
 # Push a tag like v1.2.3 to build, package, sign, and publish a GitHub Release.
+# Or run via workflow_dispatch for a dry-run: the build/package jobs run and upload
+# artifacts, but the "Publish GitHub Release" job is skipped (it is tag-gated).
 on:
   push:
     tags: ["v*"]
@@ -17,13 +19,20 @@ jobs:
       WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
       WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # MinVer derives the version from the tag
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.*.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
 
       - name: Build & test
         run: |
@@ -49,7 +58,7 @@ jobs:
           pwsh ./package.ps1 -OutputZip "${{ github.workspace }}/FlyingAzure-Screensaver-win-x64.zip"
 
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows
           path: FlyingAzure-Screensaver-win-x64.zip
@@ -59,13 +68,20 @@ jobs:
     name: macOS .saver (.pkg)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.*.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
 
       # Phase-gated scaffold. Today this only builds the cross-platform Core so the
       # macOS leg of the release is exercised. The real artifact requires:
@@ -85,15 +101,18 @@ jobs:
     name: Publish GitHub Release
     needs: [windows, macos]
     runs-on: ubuntu-latest
+    # Tag-gated: only publishes a Release for an actual v* tag push. A manual
+    # workflow_dispatch run skips this job, making it a safe build/package dry-run.
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download Windows artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: windows
           path: artifacts
 
       - name: Publish release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           fail_on_unmatched_files: true
