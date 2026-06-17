@@ -26,6 +26,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..
 OutputBaseFilename=FlyingAzure-Setup-x64
+SetupIconFile=..\assets\icons\FlyingAzure.ico
 UninstallDisplayIcon={sys}\FlyingAzure.scr
 UninstallDisplayName={#MyAppName}
 Compression=lzma2
