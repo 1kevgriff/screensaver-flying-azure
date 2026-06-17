@@ -21,16 +21,21 @@ echo "== [1/4] Publishing NativeAOT engine (osx-arm64 + osx-x64) =="
 dotnet publish "$ENGINE_PROJ" -c Release -r osx-arm64 -p:PublishAot=true -p:NativeLib=Shared
 dotnet publish "$ENGINE_PROJ" -c Release -r osx-x64   -p:PublishAot=true -p:NativeLib=Shared
 
-echo "== lipo dylibs into universal =="
+echo "== make universal dylibs =="
 rm -rf "$UNI"; mkdir -p "$UNI"
 for f in "$ARM"/*.dylib; do
   name="$(basename "$f")"
-  if [[ -f "$X64/$name" ]]; then
+  archs="$(lipo -archs "$ARM/$name" 2>/dev/null || echo unknown)"
+  if [[ "$archs" == *arm64* && "$archs" == *x86_64* ]]; then
+    # Already a fat/universal binary (e.g. SkiaSharp's native lib) — use as-is.
+    cp "$ARM/$name" "$UNI/$name"
+  elif [[ -f "$X64/$name" && "$(lipo -archs "$X64/$name" 2>/dev/null)" != "$archs" ]]; then
+    # Thin arm64 + thin x86_64 slices (the NativeAOT engine) — combine them.
     lipo -create "$ARM/$name" "$X64/$name" -output "$UNI/$name"
   else
-    cp "$f" "$UNI/$name" # arch-neutral or arm-only file: keep as-is
+    cp "$ARM/$name" "$UNI/$name"
   fi
-  echo "  $name -> $(lipo -archs "$UNI/$name")"
+  echo "  $name: arm-publish=[$archs] -> universal=[$(lipo -archs "$UNI/$name")]"
 done
 
 echo "== [2/4] Generating + building the universal .saver =="
