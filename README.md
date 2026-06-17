@@ -1,5 +1,11 @@
 # Flying Azure Screensaver
 
+[![CI](https://github.com/1kevgriff/screensaver-flying-azure/actions/workflows/ci.yml/badge.svg)](https://github.com/1kevgriff/screensaver-flying-azure/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/1kevgriff/screensaver-flying-azure?sort=semver)](https://github.com/1kevgriff/screensaver-flying-azure/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/1kevgriff/screensaver-flying-azure/total)](https://github.com/1kevgriff/screensaver-flying-azure/releases)
+[![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue)](https://github.com/1kevgriff/screensaver-flying-azure/releases/latest)
+[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/download/dotnet/10.0)
+
 A cross-platform (Windows + macOS) screensaver that flies Microsoft Azure chevron
 logos across the screen at a diagonal, leaving fading motion-blur trails — some
 logos faster than others. Inspired by After Dark's *Flying Toasters*. Multi-monitor
