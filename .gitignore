@@ -5,4 +5,5 @@ obj/
 *.scr
 build/
 *.zip
+*.pkg
 FlyingAzure-Setup-x64.exe

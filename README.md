@@ -1,8 +1,24 @@
 # Flying Azure Screensaver
 
-A Windows screensaver that flies Microsoft Azure chevron logos across the screen
-at a diagonal, leaving fading motion-blur trails. Inspired by After Dark's
-*Flying Toasters*. Multi-monitor aware, with a simple settings dialog.
+A cross-platform (Windows + macOS) screensaver that flies Microsoft Azure chevron
+logos across the screen at a diagonal, leaving fading motion-blur trails — some
+logos faster than others. Inspired by After Dark's *Flying Toasters*. Multi-monitor
+aware, with a settings dialog and an optional culture-formatted clock. Windows and
+macOS share one SkiaSharp render engine (compiled to a native library via NativeAOT).
+
+## Download
+
+Grab the latest builds from the [**Releases**](https://github.com/1kevgriff/screensaver-flying-azure/releases/latest) page:
+
+| Platform | File | Notes |
+|---|---|---|
+| Windows | `FlyingAzure-Setup-x64.exe` | One-click installer — adds it to Screen Saver Settings |
+| Windows | `FlyingAzure-Screensaver-win-x64.zip` | Portable — unzip and run `install.ps1` |
+| macOS (Apple Silicon) | `FlyingAzure-osx-arm64.saver.zip` | Signed & notarized — unzip, double-click the `.saver` to install |
+
+The Windows release builds are self-contained (no .NET runtime required). The macOS
+build is signed with a Developer ID and notarized by Apple, so it opens without
+Gatekeeper warnings.
 
 ## Requirements
 
