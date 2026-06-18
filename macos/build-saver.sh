@@ -73,6 +73,10 @@ cp "$I/icon_1024.png" "$ICONSET/icon_512x512@2x.png"
 mkdir -p "$SAVER/Contents/Resources"
 iconutil -c icns "$ICONSET" -o "$SAVER/Contents/Resources/FlyingAzure.icns"
 
+# Screen Saver list thumbnail — System Settings reads thumbnail.png / thumbnail@2x.png
+# straight from the bundle's Resources (no Info.plist entry needed).
+cp "$ROOT/assets/thumbnail.png" "$ROOT/assets/thumbnail@2x.png" "$SAVER/Contents/Resources/"
+
 echo "== [4/4] Ad-hoc codesign + zip =="
 for dylib in "$SAVER/Contents/Frameworks/"*.dylib; do
   codesign --force --timestamp=none --sign - "$dylib"

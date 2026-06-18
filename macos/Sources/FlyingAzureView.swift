@@ -19,6 +19,20 @@ final class FlyingAzureView: ScreenSaverView {
     private var pixelHeight: Int = 0
     private var buffer = [UInt8]()
     private var lastTime: CFTimeInterval = 0
+    private var activeConfig: ConfigController?
+
+    private var moduleName: String {
+        Bundle(for: type(of: self)).bundleIdentifier ?? "com.kevgriffin.flyingazure"
+    }
+
+    // System Settings shows an "Options…" button and presents this sheet.
+    override var hasConfigureSheet: Bool { true }
+
+    override var configureSheet: NSWindow? {
+        let controller = ConfigController(moduleName: moduleName)
+        activeConfig = controller // retain while the sheet is open
+        return controller.window
+    }
 
     override init?(frame: NSRect, isPreview: Bool) {
         super.init(frame: frame, isPreview: isPreview)
@@ -57,9 +71,10 @@ final class FlyingAzureView: ScreenSaverView {
         pixelHeight = max(1, Int(bounds.height * scale))
         buffer = [UInt8](repeating: 0, count: pixelWidth * pixelHeight * 4)
 
-        // Defaults today; reading saved settings is a follow-up. clockCorner 4 = BottomRight.
-        let opaqueBlack = Int32(bitPattern: 0xFF00_0000)
-        handle = create(Int32(pixelWidth), Int32(pixelHeight), 24, 50, 50, 55, opaqueBlack, 4)
+        let cfg = FAConfig.load(moduleName: moduleName)
+        handle = create(Int32(pixelWidth), Int32(pixelHeight),
+                        Int32(cfg.logoCount), Int32(cfg.speed), Int32(cfg.size),
+                        Int32(cfg.trailLength), cfg.backgroundArgb, Int32(cfg.clock))
         lastTime = CACurrentMediaTime()
     }
 
@@ -105,12 +120,9 @@ final class FlyingAzureView: ScreenSaverView {
                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: info),
                 let image = ctx.makeImage() else { return }
 
-            // Skia's origin is top-left; Core Graphics is bottom-left — flip vertically.
-            nsContext.saveGState()
-            nsContext.translateBy(x: 0, y: bounds.height)
-            nsContext.scaleBy(x: 1, y: -1)
+            // The screensaver view's draw context is already top-left oriented (matching
+            // Skia's top-left frame), so blit the image directly — no vertical flip.
             nsContext.draw(image, in: bounds)
-            nsContext.restoreGState()
         }
     }
 
